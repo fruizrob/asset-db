@@ -2,6 +2,7 @@ package postgres_test
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/owasp-amass/asset-db/migrations/postgres"
 	migrate "github.com/rubenv/sql-migrate"
@@ -10,7 +11,13 @@ import (
 )
 
 func ExampleMigrations() {
-	db, err := gorm.Open(pg.Open("postgresql://localhost/amassdb?user=postgres&password=postgres"), &gorm.Config{})
+	user := os.Getenv("POSTGRES_USER")
+	password := os.Getenv("POSTGRES_PASSWORD")
+	dbname := os.Getenv("POSTGRES_DB")
+
+	dsn := fmt.Sprintf("postgresql://localhost/%s?user=%s&password=%s", dbname, user, password)
+
+	db, err := gorm.Open(pg.Open(dsn), &gorm.Config{})
 	if err != nil {
 		panic("failed to connect database")
 	}

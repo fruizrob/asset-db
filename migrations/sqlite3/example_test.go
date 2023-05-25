@@ -2,6 +2,7 @@ package sqlite3_test
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/owasp-amass/asset-db/migrations/sqlite3"
 	migrate "github.com/rubenv/sql-migrate"
@@ -10,7 +11,9 @@ import (
 )
 
 func ExampleMigrations() {
-	db, err := gorm.Open(sqlite.Open("test.db"), &gorm.Config{})
+	dns := os.Getenv("SQLITE3_DB")
+
+	db, err := gorm.Open(sqlite.Open(dns), &gorm.Config{})
 	if err != nil {
 		panic("failed to connect database")
 	}
@@ -30,6 +33,11 @@ func ExampleMigrations() {
 	tables := []string{"assets", "relations"}
 	for _, table := range tables {
 		fmt.Println(db.Migrator().HasTable(table))
+	}
+
+	err = os.Remove("./" + dns)
+	if err != nil {
+		panic(err)
 	}
 
 	// Output:
