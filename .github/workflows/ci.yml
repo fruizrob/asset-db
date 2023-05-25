@@ -20,7 +20,7 @@ jobs:
     env:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: amassdb
+      POSTGRES_DB: postgres
       SQLITE3_DB: test.db
     steps:
       - uses: actions/checkout@v3
