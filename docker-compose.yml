@@ -2,19 +2,10 @@ version: '3'
 
 services:
   postgres:
-    container_name: amassdb_postgres
+    container_name: assetdb_postgres
     image: postgres:latest
     restart: always
     env_file: .env.local
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: amassdb
-      DATABASE_HOST: localhost
-      PGDATA: /data/postgres
-    volumes:
-       - ./postgres-data:/var/lib/postgresql/data
-       - ./migrations/postgres/initdb.sh:/docker-entrypoint-initdb.d/initdb.sh
     ports:
       - "5432:5432"
 
