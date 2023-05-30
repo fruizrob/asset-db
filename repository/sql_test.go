@@ -22,7 +22,7 @@ var password = os.Getenv("POSTGRES_PASSWORD")
 var pgdbname = os.Getenv("POSTGRES_DB")
 var sqlitedbname = os.Getenv("SQLITE3_DB")
 
-var store *gormRepository
+var store *sqlRepository
 
 type testSetup struct {
 	name     DBType
