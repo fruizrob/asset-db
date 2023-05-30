@@ -61,7 +61,10 @@ func teardownSqlite(dns string, exitCodes []int) {
 		sumOfExitCodes += exitCode
 	}
 	if sumOfExitCodes == 0 {
-		os.Remove(dns)
+		err := os.Remove(dns)
+		if err != nil {
+			panic(err)
+		}
 	}
 }
 
@@ -168,13 +171,13 @@ func TestRepository(t *testing.T) {
 		relation         string
 	}{
 		{
-			description:      "create and find domain asset",
+			description:      "create an FQDN and link it with another FQDN",
 			sourceAsset:      domain.FQDN{Name: "www.example.com"},
 			destinationAsset: domain.FQDN{Name: "www.example.subdomain.com"},
 			relation:         "cname_record",
 		},
 		{
-			description:      "create and find network asset",
+			description:      "create an Autonomous System and link it with an RIR organization",
 			sourceAsset:      network.AutonomousSystem{Number: 1},
 			destinationAsset: network.RIROrganization{Name: "Google LLC", RIRId: "GOGL", RIR: "ARIN"},
 			relation:         "managed_by",
@@ -189,7 +192,7 @@ func TestRepository(t *testing.T) {
 			}
 
 			if sourceAsset == nil {
-				t.Fatalf("asset is nil")
+				t.Fatalf("failed to create asset: asset is nil")
 			}
 
 			foundAsset, err := store.FindAssetById(sourceAsset.ID)
@@ -198,15 +201,15 @@ func TestRepository(t *testing.T) {
 			}
 
 			if foundAsset == nil {
-				t.Fatalf("found asset by id is nil")
+				t.Fatalf("failed to find asset by id: found asset is nil")
 			}
 
 			if foundAsset.ID != sourceAsset.ID {
-				t.Fatalf("expected asset id %s, got %s", sourceAsset.ID, foundAsset.ID)
+				t.Fatalf("failed to find asset by id: expected asset id %s, got %s", sourceAsset.ID, foundAsset.ID)
 			}
 
 			if foundAsset.Asset != sourceAsset.Asset {
-				t.Fatalf("expected asset %s, got %s", sourceAsset.Asset, foundAsset.Asset)
+				t.Fatalf("failed to find asset by id: expected asset %s, got %s", sourceAsset.Asset, foundAsset.Asset)
 			}
 
 			foundAssetByContent, err := store.FindAssetByContent(sourceAsset.Asset)
@@ -215,15 +218,15 @@ func TestRepository(t *testing.T) {
 			}
 
 			if foundAssetByContent == nil {
-				t.Fatalf("found asset by content is nil")
+				t.Fatalf("failed to find asset by content: found asset is nil")
 			}
 
 			if foundAssetByContent[0].ID != sourceAsset.ID {
-				t.Fatalf("expected asset id %s, got %s", sourceAsset.ID, foundAsset.ID)
+				t.Fatalf("failed to find asset by content: expected asset id %s, got %s", sourceAsset.ID, foundAsset.ID)
 			}
 
 			if foundAssetByContent[0].Asset != sourceAsset.Asset {
-				t.Fatalf("expected asset %s, got %s", sourceAsset.Asset, foundAsset.Asset)
+				t.Fatalf("failed to find asset by content: expected asset %s, got %s", sourceAsset.Asset, foundAsset.Asset)
 			}
 
 			destinationAsset, err := store.CreateAsset(tc.destinationAsset)
@@ -232,7 +235,7 @@ func TestRepository(t *testing.T) {
 			}
 
 			if destinationAsset == nil {
-				t.Fatalf("destination asset is nil")
+				t.Fatalf("failed to create destination asset: destination asset is nil")
 			}
 
 			relation, err := store.Link(sourceAsset, tc.relation, destinationAsset)
@@ -241,7 +244,7 @@ func TestRepository(t *testing.T) {
 			}
 
 			if relation == nil {
-				t.Fatalf("relation is nil")
+				t.Fatalf("failed to link assets: relation is nil")
 			}
 		})
 	}

@@ -22,7 +22,7 @@ func New(dbType repository.DBType, dsn string) *assetDB {
 }
 
 // Create creates a new asset in the database.
-// If source or relation are nil, the asset is created without any relation between them.
+// If source is nil, the discovered asset will be created and relation will be ignored
 // If source and relation are provided, the asset is created and linked to the source asset using the specified relation.
 // It returns the newly created asset and an error, if any.
 func (as *assetDB) Create(source *types.Asset, relation *string, discovered oam.Asset) (*types.Asset, error) {
