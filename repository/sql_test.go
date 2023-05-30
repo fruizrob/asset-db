@@ -2,6 +2,7 @@ package repository
 
 import (
 	"fmt"
+	"net/netip"
 	"os"
 	"testing"
 
@@ -15,6 +16,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 var user = os.Getenv("POSTGRES_USER")
@@ -28,11 +30,11 @@ type testSetup struct {
 	name     DBType
 	dns      string
 	setup    func(string) (*gorm.DB, error)
-	teardown func(string, []int)
+	teardown func(string)
 }
 
 func setupSqlite(dsn string) (*gorm.DB, error) {
-	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{Logger: logger.Default.LogMode(logger.Info)})
 	if err != nil {
 		return nil, err
 	}
@@ -55,21 +57,15 @@ func setupSqlite(dsn string) (*gorm.DB, error) {
 	return db, nil
 }
 
-func teardownSqlite(dns string, exitCodes []int) {
-	sumOfExitCodes := 0
-	for _, exitCode := range exitCodes {
-		sumOfExitCodes += exitCode
-	}
-	if sumOfExitCodes == 0 {
-		err := os.Remove(dns)
-		if err != nil {
-			panic(err)
-		}
+func teardownSqlite(dns string) {
+	err := os.Remove(dns)
+	if err != nil {
+		panic(err)
 	}
 }
 
 func setupPostgres(dsn string) (*gorm.DB, error) {
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{Logger: logger.Default.LogMode(logger.Info)})
 	if err != nil {
 		return nil, err
 	}
@@ -92,31 +88,25 @@ func setupPostgres(dsn string) (*gorm.DB, error) {
 	return db, nil
 }
 
-func teardownPostgres(dns string, exitCodes []int) {
-	sumOfExitCodes := 0
-	for _, exitCode := range exitCodes {
-		sumOfExitCodes += exitCode
+func teardownPostgres(dns string) {
+	db, err := gorm.Open(postgres.Open(dns), &gorm.Config{})
+	if err != nil {
+		panic(err)
 	}
-	if sumOfExitCodes == 0 {
-		db, err := gorm.Open(postgres.Open(dns), &gorm.Config{})
-		if err != nil {
-			panic(err)
-		}
 
-		migrationsSource := migrate.EmbedFileSystemMigrationSource{
-			FileSystem: sqlitemigrations.Migrations(),
-			Root:       "/",
-		}
+	migrationsSource := migrate.EmbedFileSystemMigrationSource{
+		FileSystem: sqlitemigrations.Migrations(),
+		Root:       "/",
+	}
 
-		sqlDb, err := db.DB()
-		if err != nil {
-			panic(err)
-		}
+	sqlDb, err := db.DB()
+	if err != nil {
+		panic(err)
+	}
 
-		_, err = migrate.Exec(sqlDb, "postgres", migrationsSource, migrate.Down)
-		if err != nil {
-			panic(err)
-		}
+	_, err = migrate.Exec(sqlDb, "postgres", migrationsSource, migrate.Down)
+	if err != nil {
+		panic(err)
 	}
 }
 
@@ -150,7 +140,7 @@ func TestMain(m *testing.M) {
 		exitCodes[i] = m.Run()
 
 		if w.teardown != nil {
-			w.teardown(w.dns, exitCodes)
+			w.teardown(w.dns)
 		}
 	}
 
@@ -164,6 +154,9 @@ func TestMain(m *testing.M) {
 }
 
 func TestRepository(t *testing.T) {
+	ip, _ := netip.ParseAddr("192.168.1.1")
+	cidr, _ := netip.ParsePrefix("198.51.100.0/24")
+
 	testCases := []struct {
 		description      string
 		sourceAsset      oam.Asset
@@ -181,6 +174,24 @@ func TestRepository(t *testing.T) {
 			sourceAsset:      network.AutonomousSystem{Number: 1},
 			destinationAsset: network.RIROrganization{Name: "Google LLC", RIRId: "GOGL", RIR: "ARIN"},
 			relation:         "managed_by",
+		},
+		{
+			description:      "create a Netblock and link it with an IP address",
+			sourceAsset:      network.Netblock{Cidr: cidr, Type: "IPv4"},
+			destinationAsset: network.IPAddress{Address: ip, Type: "IPv4"},
+			relation:         "contains",
+		},
+		{
+			description:      "create an FQDN and link it with an IP address",
+			sourceAsset:      domain.FQDN{Name: "www.domain.com"},
+			destinationAsset: network.IPAddress{Address: ip, Type: "IPv4"},
+			relation:         "a_record",
+		},
+		{
+			description:      "create an Autonomous System and link it with an IP address",
+			sourceAsset:      network.AutonomousSystem{Number: 2},
+			destinationAsset: network.IPAddress{Address: ip, Type: "IPv4"},
+			relation:         "announces",
 		},
 	}
 
@@ -222,11 +233,11 @@ func TestRepository(t *testing.T) {
 			}
 
 			if foundAssetByContent[0].ID != sourceAsset.ID {
-				t.Fatalf("failed to find asset by content: expected asset id %s, got %s", sourceAsset.ID, foundAsset.ID)
+				t.Fatalf("failed to find asset by content: expected asset id %s, got %s", sourceAsset.ID, foundAssetByContent[0].ID)
 			}
 
 			if foundAssetByContent[0].Asset != sourceAsset.Asset {
-				t.Fatalf("failed to find asset by content: expected asset %s, got %s", sourceAsset.Asset, foundAsset.Asset)
+				t.Fatalf("failed to find asset by content: expected asset %s, got %s", sourceAsset.Asset, foundAssetByContent[0].Asset)
 			}
 
 			destinationAsset, err := store.CreateAsset(tc.destinationAsset)

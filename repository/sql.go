@@ -65,7 +65,7 @@ func sqliteDatabase(dsn string) (*gorm.DB, error) {
 // It takes an oam.Asset as input and persists it in the database.
 // The asset is serialized to JSON and stored in the Content field of the Asset struct.
 // Returns the created asset as a types.Asset or an error if the creation fails.
-func (gorm *sqlRepository) CreateAsset(assetData oam.Asset) (*types.Asset, error) {
+func (sql *sqlRepository) CreateAsset(assetData oam.Asset) (*types.Asset, error) {
 	jsonContent, err := assetData.JSON()
 	if err != nil {
 		return &types.Asset{}, err
@@ -76,7 +76,7 @@ func (gorm *sqlRepository) CreateAsset(assetData oam.Asset) (*types.Asset, error
 		Content: jsonContent,
 	}
 
-	result := gorm.db.Create(&asset)
+	result := sql.db.Create(&asset)
 	if result.Error != nil {
 		return &types.Asset{}, result.Error
 	}
@@ -91,7 +91,7 @@ func (gorm *sqlRepository) CreateAsset(assetData oam.Asset) (*types.Asset, error
 // It takes an oam.Asset as input and searches for assets with matching content in the database.
 // The asset data is serialized to JSON and compared against the Content field of the Asset struct.
 // Returns a slice of matching assets as []*types.Asset or an error if the search fails.
-func (gorm *sqlRepository) FindAssetByContent(assetData oam.Asset) ([]*types.Asset, error) {
+func (sql *sqlRepository) FindAssetByContent(assetData oam.Asset) ([]*types.Asset, error) {
 	jsonContent, err := assetData.JSON()
 	if err != nil {
 		return []*types.Asset{}, err
@@ -108,7 +108,7 @@ func (gorm *sqlRepository) FindAssetByContent(assetData oam.Asset) ([]*types.Ass
 	}
 
 	var assets []Asset
-	result := gorm.db.Find(&assets, jsonQuery)
+	result := sql.db.Find(&assets, jsonQuery)
 	if result.Error != nil {
 		return []*types.Asset{}, result.Error
 	}
@@ -132,14 +132,14 @@ func (gorm *sqlRepository) FindAssetByContent(assetData oam.Asset) ([]*types.Ass
 // FindAssetById finds an asset in the database by its ID.
 // It takes a string representing the asset ID and retrieves the corresponding asset from the database.
 // Returns the found asset as a types.Asset or an error if the asset is not found.
-func (gorm *sqlRepository) FindAssetById(id string) (*types.Asset, error) {
+func (sql *sqlRepository) FindAssetById(id string) (*types.Asset, error) {
 	assetId, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
 		return &types.Asset{}, err
 	}
 
 	asset := Asset{ID: assetId}
-	result := gorm.db.First(&asset)
+	result := sql.db.First(&asset)
 	if result.Error != nil {
 		return &types.Asset{}, result.Error
 	}
@@ -159,7 +159,7 @@ func (gorm *sqlRepository) FindAssetById(id string) (*types.Asset, error) {
 // It takes the source asset, relation type, and destination asset as inputs.
 // The relation is established by creating a new Relation struct in the database, linking the two assets.
 // Returns the created relation as a types.Relation or an error if the link creation fails.
-func (gorm *sqlRepository) Link(source *types.Asset, relation string, destination *types.Asset) (*types.Relation, error) {
+func (sql *sqlRepository) Link(source *types.Asset, relation string, destination *types.Asset) (*types.Relation, error) {
 	fromAssetId, err := strconv.ParseInt(source.ID, 10, 64)
 	if err != nil {
 		return &types.Relation{}, err
@@ -176,7 +176,7 @@ func (gorm *sqlRepository) Link(source *types.Asset, relation string, destinatio
 		ToAssetID:   toAssetId,
 	}
 
-	result := gorm.db.Create(&r)
+	result := sql.db.Create(&r)
 	if result.Error != nil {
 		return &types.Relation{}, result.Error
 	}

@@ -82,13 +82,13 @@ func (a Asset) JSONQuery() (*datatypes.JSONQueryExpression, error) {
 		return jsonQuery.Equals(assetData.Name, "name"), nil
 	case string(oam.IPAddress):
 		assetData := asset.(network.IPAddress)
-		return jsonQuery.Equals(assetData.Address, "address"), nil
+		return jsonQuery.Equals(assetData.Address.String(), "address"), nil
 	case string(oam.ASN):
 		assetData := asset.(network.AutonomousSystem)
 		return jsonQuery.Equals(assetData.Number, "number"), nil
 	case string(oam.Netblock):
 		assetData := asset.(network.Netblock)
-		return jsonQuery.Equals(assetData.Cidr, "cidr"), nil
+		return jsonQuery.Equals(assetData.Cidr.String(), "cidr"), nil
 	case string(oam.RIROrg):
 		assetData := asset.(network.RIROrganization)
 		return jsonQuery.Equals(assetData.Name, "name"), nil
